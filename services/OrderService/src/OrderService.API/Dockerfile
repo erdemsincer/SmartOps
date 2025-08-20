@@ -1,8 +1,8 @@
-
+# ---------- build stage ----------
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-
+# Cache-friendly restore
 COPY SmartOps.sln ./
 COPY services/OrderService/src/OrderService.API/OrderService.API.csproj services/OrderService/src/OrderService.API/
 COPY services/OrderService/src/OrderService.Application/OrderService.Application.csproj services/OrderService/src/OrderService.Application/
@@ -12,20 +12,18 @@ COPY shared/Contracts/SmartOps.Contracts.csproj shared/Contracts/
 
 RUN dotnet restore SmartOps.sln
 
-
+# Tüm kaynak
 COPY . .
 
 # Publish
 WORKDIR /src/services/OrderService/src/OrderService.API
 RUN dotnet publish OrderService.API.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-
+# ---------- runtime stage ----------
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
-
-
 
 COPY --from=build /app/publish ./
 ENTRYPOINT ["dotnet", "OrderService.API.dll"]
