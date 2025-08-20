@@ -7,9 +7,10 @@ using OrderService.Infrastructure;
 using OrderService.Infrastructure.Persistence;
 using OrderService.Application;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
+// ----------------- Serilog -----------------
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
@@ -17,7 +18,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 builder.Host.UseSerilog();
 
-// Services
+// ----------------- Services -----------------
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 
@@ -28,24 +29,25 @@ builder.Services
         o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     })
-    // Sadece gerekiyorsa aktif tut:
+    // sadece gerekiyorsa aktif:
     .AddNewtonsoftJson();
 
 builder.Services.AddFluentValidationAutoValidation();
-// builder.Services.AddValidatorsFromAssemblyContaining<YourAnyValidatorType>();
+// builder.Services.AddValidatorsFromAssemblyContaining<AnyValidator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// (opsiyonel) ProblemDetails + global exception
+// ProblemDetails + global exception
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();       // istek logları
-app.UseExceptionHandler();            // ProblemDetails ile 5xx/4xx
+// ----------------- Middleware -----------------
+app.UseSerilogRequestLogging();   // request logları
+app.UseExceptionHandler();        // ProblemDetails ile 5xx/4xx
 
-// Auto-migrate (dev)
+// ----------------- DB Auto-Migrate (dev) -----------------
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -60,14 +62,17 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// ----------------- Swagger -----------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// ----------------- Controllers -----------------
 app.MapControllers();
 
+// ----------------- Health Checks -----------------
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "order-service" }));
 app.MapGet("/ready", async (OrderDbContext db) =>
 {
@@ -75,4 +80,8 @@ app.MapGet("/ready", async (OrderDbContext db) =>
     return canConnect ? Results.Ok(new { db = "up" }) : Results.Problem("db down", statusCode: 503);
 });
 
+// ----------------- Force-load RabbitMQ publisher -----------------
+
+
+// ----------------- Run -----------------
 app.Run();
