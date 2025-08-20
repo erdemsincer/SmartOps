@@ -67,16 +67,25 @@ services:
   order-service:
     build:
       context: ../
-      dockerfile: ./services/OrderService/src/OrderService.API/Dockerfile
+      dockerfile: services/OrderService/src/OrderService.API/Dockerfile
     container_name: order-service
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__OrderDb: "Host=order-db;Database=${ORDER_DB_NAME:-orderdb};Username=${ORDER_DB_USER:-postgres};Password=${ORDER_DB_PASS:-postgres}"
+      RabbitMq__HostName: "rabbitmq"
+      RabbitMq__Port: 5672
+      RabbitMq__UserName: "guest"
+      RabbitMq__Password: "guest"
+      RabbitMq__VirtualHost: "/"
+      RabbitMq__Exchange: "smartops.orders"
+      RabbitMq__DurableExchange: "true"
     ports:
       - "8080:8080"
     depends_on:
       - order-db
+      - rabbitmq
     networks: [ smartops-net ]
+
 
 networks:
   smartops-net:
