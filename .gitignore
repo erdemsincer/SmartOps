@@ -1,0 +1,54 @@
+# ----------------------
+# .NET / C#
+# ----------------------
+**/bin/
+**/obj/
+**/out/
+.vs/
+TestResults/
+*.user
+*.suo
+*.swp
+*.tmp
+*.log
+
+# ----------------------
+# Node / Frontend
+# ----------------------
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output/
+.pnpm-store/
+.parcel-cache/
+
+# ----------------------
+# Docker / Dev env
+# ----------------------
+**/.env
+**/data/
+**/volumes/
+# .env.example commitlenmeli, o yüzden IGNORE ETME!
+# docker-compose local override dosyaları (varsa)
+docker-compose.*.local.yml
+
+# n8n yerel çalışma klasörü (compose'ta mount ediyorsun)
+automation/n8n/
+
+# ----------------------
+# IDE / OS
+# ----------------------
+.vscode/
+.idea/
+*.iml
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# App secrets / local config
+# ----------------------
+# prod appsettings commitlenir; dev/local gizli kalsın
+**/appsettings.Development.json
+**/appsettings.Local.json

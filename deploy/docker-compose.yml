@@ -1,0 +1,86 @@
+version: "3.9"
+
+name: smartops
+
+services:
+  order-db:
+    image: postgres:14
+    container_name: order-db
+    environment:
+      POSTGRES_USER: ${ORDER_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASS:-postgres}
+      POSTGRES_DB: ${ORDER_DB_NAME:-orderdb}
+    ports:
+      - "5433:5432"   # local erişim için (opsiyonel)
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    networks: [ smartops-net ]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # management ui
+    networks: [ smartops-net ]
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"  # smtp
+      - "8025:8025"  # ui
+    networks: [ smartops-net ]
+
+  n8n-db:
+    image: postgres:14
+    container_name: n8n-db
+    environment:
+      POSTGRES_USER: ${N8N_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${N8N_DB_PASS:-postgres}
+      POSTGRES_DB: ${N8N_DB_NAME:-n8ndb}
+    volumes:
+      - n8n-db-data:/var/lib/postgresql/data
+    networks: [ smartops-net ]
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    depends_on: [ n8n-db ]
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n-db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB_NAME:-n8ndb}
+      DB_POSTGRESDB_USER: ${N8N_DB_USER:-postgres}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASS:-postgres}
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      WEBHOOK_URL: http://localhost:5678/
+      GENERIC_TIMEZONE: Europe/Istanbul
+    ports:
+      - "5678:5678"
+    volumes:
+      - ../automation/n8n:/home/node/.n8n
+    networks: [ smartops-net ]
+
+  order-service:
+    build:
+      context: ../
+      dockerfile: ./services/OrderService/src/OrderService.API/Dockerfile
+    container_name: order-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__OrderDb: "Host=order-db;Database=${ORDER_DB_NAME:-orderdb};Username=${ORDER_DB_USER:-postgres};Password=${ORDER_DB_PASS:-postgres}"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - order-db
+    networks: [ smartops-net ]
+
+networks:
+  smartops-net:
+
+volumes:
+  order-db-data:
+  n8n-db-data:
